@@ -1,9 +1,24 @@
 import io, logging, pickle, boto3
+import builtins
 
 from . import load_pointer
 from .. import s3_utils
 
 logger = logging.getLogger(__name__)
+
+class RestrictedUnpickler(pickle.Unpickler):
+
+    def find_class(self, module, name):
+        """Only allow safe classes from builtins"""
+        if module == "builtins" and name in safe_builtins:
+            return getattr(builtins, name)
+        """Forbid everything else"""
+        raise pickle.UnpicklingError("global '%s.%s' is forbidden" %
+                                     (module, name))
+
+def restricted_loads(s):
+    """Helper function analogous to pickle.loads()"""
+    return RestrictedUnpickler(io.BytesIO(s)).load()
 
 def load(path, format=None, verbose=True):
     if path.endswith('.pointer'):
@@ -23,6 +38,7 @@ def load(path, format=None, verbose=True):
 
     if verbose: logger.log(15, 'Loading: %s' % path)
     with open(path, 'rb') as fin:
+        restricted_loads(fin.read())
         object = pickle.load(fin)
     return object
 
