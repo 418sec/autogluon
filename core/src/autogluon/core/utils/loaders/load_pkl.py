@@ -1,6 +1,14 @@
 import io, logging, pickle, boto3
 import builtins
 
+safe_builtins = {
+    'range',
+    'complex',
+    'set',
+    'frozenset',
+    'slice',
+}
+
 from . import load_pointer
 from .. import s3_utils
 
